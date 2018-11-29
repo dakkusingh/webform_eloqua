@@ -1,0 +1,8 @@
+name: Webform Eloqua Handler
+type: module
+description: Webform Eloqua Handler
+core: 8.x
+package: Eloqua
+dependencies:
+  - webform:webform
+  - eloqua_api_redux:eloqua_api_redux
