@@ -3,9 +3,15 @@
 namespace Drupal\webform_eloqua\Plugin\WebformHandler;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\eloqua_api_redux\Service\Forms as EloquaFormsService;
 use Drupal\webform\Plugin\WebformHandlerBase;
+use Drupal\webform\WebformSubmissionConditionsValidatorInterface;
 use Drupal\webform\WebformSubmissionInterface;
 use Drupal\webform\Element\WebformExcludedColumns;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 
 /**
  * Webform submission post handler.
@@ -22,13 +28,64 @@ use Drupal\webform\Element\WebformExcludedColumns;
 class WebformEloquaHandler extends WebformHandlerBase {
 
   /**
+   * Eloqua Forms Service.
+   *
+   * @var \Drupal\eloqua_api_redux\Service\Forms
+   */
+  private $eloquaFormsService;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(array $configuration,
+                              $plugin_id,
+                              $plugin_definition,
+                              LoggerChannelFactoryInterface $logger_factory,
+                              ConfigFactoryInterface $config_factory,
+                              EntityTypeManagerInterface $entity_type_manager,
+                              WebformSubmissionConditionsValidatorInterface $conditions_validator,
+                              EloquaFormsService $eloquaFormsService) {
+    parent::__construct(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $logger_factory,
+      $config_factory,
+      $entity_type_manager,
+      $conditions_validator);
+    $this->eloquaFormsService = $eloquaFormsService;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container,
+                                array $configuration,
+                                $plugin_id,
+                                $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('logger.factory'),
+      $container->get('config.factory'),
+      $container->get('entity_type.manager'),
+      $container->get('webform_submission.conditions_validator'),
+      $container->get('eloqua_api_redux.forms')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    // Mimic functionality from WebformExcludedColumns::getWebformExcludedOptions
+    // Mimic functionality from
+    // WebformExcludedColumns::getWebformExcludedOptions
     // TODO find a better way to do this.
+    // See discussion at
+    // https://www.drupal.org/project/webform/issues/3017676#comment-12880632
     $webform = $this->getWebform();
     $fakeElement['#webform_id'] = $webform->id();
     $options = WebformExcludedColumns::getWebformExcludedOptions($fakeElement);
@@ -37,8 +94,8 @@ class WebformEloquaHandler extends WebformHandlerBase {
       '#type' => 'table',
       '#caption' => $this->t('Drupal to Eloqua Field Mapping'),
       '#header' => [
-        'drupal_fields' => t('Drupal Field Name'),
-        'eloqua_fields' => t('Eloqua Field ID'),
+        'drupal_fields' => $this->t('Drupal Field Name'),
+        'eloqua_fields' => $this->t('Eloqua Field ID'),
       ],
     ];
 
@@ -47,7 +104,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
       $eloquaFields = $this->getEloquaFields($this->configuration['eloqua_formid']);
 
       if (!empty($eloquaFields)) {
-        $eloquaFieldOptions['-'] = $this->t('-');
+        $eloquaFieldOptions['-'] = '-';
         foreach ($eloquaFields as $eloquaField) {
           $eloquaFieldOptions[$eloquaField['id']] = $eloquaField['name'];
         }
@@ -156,9 +213,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
    *   Fields from API lookup.
    */
   private function getEloquaFields($formId) {
-    // TODO Dependency Inject this.
-    $eloquaFormsService = \Drupal::service('eloqua_api_redux.forms');
-    $fields = $eloquaFormsService->getFieldsRaw($formId);
+    $fields = $this->eloquaFormsService->getFieldsRaw($formId);
     return $fields;
   }
 
@@ -172,9 +227,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
    *   Form from API lookup.
    */
   private function getEloquaForm($formId) {
-    // TODO Dependency Inject this.
-    $eloquaFormsService = \Drupal::service('eloqua_api_redux.forms');
-    $form = $eloquaFormsService->getForm($formId);
+    $form = $this->eloquaFormsService->getForm($formId);
     return $form;
   }
 
@@ -198,7 +251,8 @@ class WebformEloquaHandler extends WebformHandlerBase {
    */
   protected function remotePost($state, WebformSubmissionInterface $webform_submission) {
     // TODO Maybe make these configurable in the future.
-    if ($state != 'completed') {
+    $completed = WebformSubmissionInterface::STATE_COMPLETED;
+    if ($state != $completed) {
       return;
     }
 
@@ -229,9 +283,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
       'fieldValues' => $eloquaFields,
     ];
 
-    // TODO Dependency Inject this.
-    $eloquaFormsService = \Drupal::service('eloqua_api_redux.forms');
-    $submission = $eloquaFormsService->createFormData($this->configuration['eloqua_formid'], $formData);
+    $submission = $this->eloquaFormsService->createFormData($this->configuration['eloqua_formid'], $formData);
 
     // TODO Improve error checking and logging.
     if (empty($submission)) {
