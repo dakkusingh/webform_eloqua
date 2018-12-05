@@ -106,7 +106,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
       if (!empty($eloquaFields)) {
         $eloquaFieldOptions['-'] = '- Select -';
         foreach ($eloquaFields as $eloquaField) {
-          if ($eloquaField['isRequired'] == TRUE) {
+          if (isset($eloquaField['isRequired']) && $eloquaField['isRequired'] == TRUE) {
             $eloquaFieldOptions[$eloquaField['id']] = $eloquaField['name'] . ' (required)';
           }
           else {
@@ -169,7 +169,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
       $eloquaFields = $this->getEloquaFields($eloquaFormId);
       foreach ($eloquaFields as $eloquaField) {
         $eloquaFieldOptions[] = $eloquaField['id'];
-        if ($eloquaField['isRequired'] == TRUE) {
+        if (isset($eloquaField['isRequired'])&& $eloquaField['isRequired'] == TRUE) {
           $mandatoryEloquaFields[$eloquaField['id']] = $eloquaField['name'];
         }
       }
@@ -192,7 +192,8 @@ class WebformEloquaHandler extends WebformHandlerBase {
 
           // Is this submitted field a mandatory request?
           if (array_key_exists($value['eloqua_field_id'], $mandatoryEloquaFields)) {
-            $mandatoryEloquaFieldsSubmitted[$value['eloqua_field_id']] = $mandatoryEloquaFields[$value['eloqua_field_id']]['name'];
+            $id = $value['eloqua_field_id'];
+            $mandatoryEloquaFieldsSubmitted[$id] = $mandatoryEloquaFields[$id];
           }
 
         }
@@ -205,10 +206,9 @@ class WebformEloquaHandler extends WebformHandlerBase {
           '#theme' => 'item_list',
           '#items' => $mandatoryEloquaFieldsMissing,
         ];
-        $markup = drupal_render($missing);
 
         $form_state->setErrorByName(NULL, $this->t('The following fields are required in Eloqua: @fields', [
-          '@fields' => $markup,
+          '@fields' => drupal_render($missing),
         ]));
       }
 
