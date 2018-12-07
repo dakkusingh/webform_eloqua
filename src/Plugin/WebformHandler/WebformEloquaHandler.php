@@ -174,6 +174,9 @@ class WebformEloquaHandler extends WebformHandlerBase {
         }
       }
 
+      // Build the submitted mandatory field.
+      $mandatoryEloquaFieldsSubmitted = [];
+
       // Check each field mapping.
       foreach ($values['eloqua_field_ids'] as $key => $value) {
         // Only interested in actual values.
@@ -187,13 +190,9 @@ class WebformEloquaHandler extends WebformHandlerBase {
             );
           }
 
-          // Build the submitted mandatory field.
-          $mandatoryEloquaFieldsSubmitted = [];
-
           // Is this submitted field a mandatory request?
           if (array_key_exists($value['eloqua_field_id'], $mandatoryEloquaFields)) {
-            $id = $value['eloqua_field_id'];
-            $mandatoryEloquaFieldsSubmitted[$id] = $mandatoryEloquaFields[$id];
+            $mandatoryEloquaFieldsSubmitted[$value['eloqua_field_id']] = $mandatoryEloquaFields[$value['eloqua_field_id']];
           }
 
         }
