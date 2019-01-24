@@ -1,0 +1,9 @@
+{
+  "name": "drupal/webform_eloqua",
+  "description": "Webform Eloqua Handler",
+  "type": "drupal-module",
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/eloqua_api_redux": "^1.0-alpha2"
+  }
+}
