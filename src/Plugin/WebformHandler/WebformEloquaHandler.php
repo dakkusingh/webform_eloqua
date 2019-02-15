@@ -304,7 +304,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
 
       // Is the submitted field a required field?
       if (array_key_exists($eloqua_field_id, $required_eloqua_fields)) {
-        $required_eloqua_fields_submitted[] = $eloqua_field_id;
+        $required_eloqua_fields_submitted[$eloqua_field_id] = $required_eloqua_fields[$eloqua_field_id];
       }
     }
 
@@ -322,7 +322,7 @@ class WebformEloquaHandler extends WebformHandlerBase {
 
       // Is the submitted field a required field?
       if (array_key_exists($eloqua_field_id, $required_eloqua_fields)) {
-        $required_eloqua_fields_submitted[] = $eloqua_field_id;
+        $required_eloqua_fields_submitted[$eloqua_field_id] = $required_eloqua_fields[$eloqua_field_id];
       }
     }
 
